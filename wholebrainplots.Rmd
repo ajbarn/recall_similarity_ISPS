@@ -1,0 +1,281 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(ggseg)
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(emmeans)
+library(sjPlot)  # For extracting confidence intervals
+library(ggeffects)
+library(optimx)
+library(ggsegGlasser)
+library(stringr)
+
+```
+
+# encoding 
+
+## data to load
+```{r}
+results <- read_csv("glasser_plot_viewing_df.csv")
+```
+
+## plot
+```{r}
+library(scico)
+library(scales)
+max_abs <- max(abs(glasser_plot_df$term_tvalue), na.rm = TRUE)
+#max_abs<-3
+bold_palette <- c("cyan", "blue", "black", "red", "yellow")
+
+p<-ggplot(glasser_plot_df) +
+  geom_brain(
+    atlas = glasser,
+    aes(fill = term_tvalue ),
+    colour = "black",
+    size = 0.2,
+    position = position_brain(side ~ hemi)
+  )+
+  #geom_sf(aes(fill = term_tvalue), lwd = 0.1, color = 'black') +
+    scale_fill_gradientn(
+    colors = bold_palette,
+    values = rescale(c(-max_abs, -max_abs/3, 0, max_abs/3, max_abs)),
+    limits = c(-max_abs, max_abs)# adjust to your data range
+  )+
+  #scale_fill_scico(
+  #  palette = "vikO",   # diverging, perceptually uniform
+  #  direction = 1,
+  #  limits = c(-max_abs, max_abs),
+  #  midpoint = 0,
+  #  na.value = "grey"
+  #) +
+  coord_sf() +
+  theme_void()
+ggsave('glasser_viewing_v2.png', plot = p, width = 4, height = 2, dpi = 300)
+```
+
+## permutation tests and plot
+## data to load
+```{r}
+glasser_plot_df_unique <- read_csv("glasser_viewing_df_unique.csv")
+```
+## run permutatio test
+```{r}
+set.seed(123)
+
+df <- glasser_plot_df_unique
+
+# observed statistic
+obs_diff <- with(df,
+  mean(mean_beta[community_name == "DMN"], na.rm = TRUE) -
+  mean(mean_beta[community_name != "DMN"], na.rm = TRUE)
+)
+
+# permutation test
+n_perm <- 10000
+perm_diffs <- replicate(n_perm, {
+  perm_labels <- sample(df$community_name)
+  mean(df$mean_beta[perm_labels == "DMN"], na.rm = TRUE) -
+    mean(df$mean_beta[perm_labels != "DMN"], na.rm = TRUE)
+})
+
+p_empirical <- mean(perm_diffs >= obs_diff)
+
+obs_diff
+p_empirical
+
+```
+
+
+## plot permutation results
+```{r}
+
+# Put permutation results into a data frame
+perm_df <- data.frame(perm_diffs = perm_diffs)
+
+p<-ggplot(perm_df, aes(x = perm_diffs)) +
+  geom_histogram(
+    bins = 100,
+    fill = "grey30",
+    color = "grey30"
+  ) +
+  geom_vline(
+    xintercept = obs_diff,
+    color = "red",
+    linewidth = 1.2
+  ) +
+  labs(
+    title = "DMN slopes vs. rest of the brain",
+    x = "Permuted Mean Difference",
+    y = "Frequency"
+  ) +
+  theme_classic(base_size = 18)
+
+p <- p +
+  annotate(
+    "text",
+    x = Inf,
+    y = Inf,
+    label = paste0("p = ", signif(p_empirical, 3)),
+    hjust = 1.05,
+    vjust = 1.5,
+    size = 6
+  )
+
+p <- p +
+  theme(
+    plot.margin = margin(10, 20, 10, 10)
+  )
+
+
+ggsave(
+  filename = "permutation_null_distribution_viewing.png",
+  plot = p,
+  width = 6,
+  height = 4,
+  units = "in",
+  dpi = 300
+)
+
+```
+
+# recall
+
+## data to load
+```{r}
+results <- read_csv("glasser_recall_plot_df.csv")
+```
+## plot
+```{r}
+library(scico)
+max_abs <- max(abs(glasser_recall_plot_df$term_tvalue), na.rm = TRUE)
+
+
+library(scales)  # for rescale()
+
+# Example custom BOLD-style palette
+bold_palette <- c("cyan", "blue", "black", "red", "yellow")
+
+p<-ggplot(glasser_recall_plot_df) +
+  geom_brain(
+    atlas = glasser,
+    aes(fill = term_tvalue),
+    colour = "black",
+    size = 0.2,
+    position = position_brain(side ~ hemi)
+  )+
+  #geom_sf(aes(fill = term_tvalue), lwd = 0.2, color = 'black') +
+  scale_fill_gradientn(
+    colors = bold_palette,
+    values = rescale(c(-max_abs, -max_abs/3, 0, max_abs/3, max_abs)),
+    limits = c(-max_abs, max_abs)# adjust to your data range
+  ) +
+  #facet_wrap(~hemi, ncol = 1,nrow=2)+
+  
+  #scale_fill_scico(
+  #  palette = "vikO",   # diverging, perceptually uniform
+  #  direction = 1,
+  #  limits = c(-max_abs, max_abs),
+  #  midpoint = 0,
+  #  na.value = "gray"
+  #) +
+  coord_sf() +
+  theme_void()
+#Error in match.arg(palette, scico_palette_names(categorical)) :
+#'arg' should be one of “acton”, “bam”, “bamako”, “bamO”, “batlow”, “batlowK”, “batlowW”, “berlin”, “bilbao”, “broc”, “brocO”, “buda”, “bukavu”, “cork”, “corkO”, “davos”, “devon”, #“fes”, “glasgow”, “grayC”, “hawaii”, “imola”, “lajolla”, “lapaz”, “lipari”, “lisbon”, “managua”, “navia”, “nuuk”, “oleron”, “oslo”, “roma”, “romaO”, “tofino”, “tokyo”, “turku”, #“vanimo”, “vik”, “vikO”
+ggsave('glasser_recall2.png', plot = p, width = 4, height = 2, dpi = 300)
+```
+
+## data to load
+```{r}
+glasser_recall_plot_df_unique <- read_csv("glasser_recall_df_unique.csv")
+```
+
+```{r}
+set.seed(123)
+
+df <- glasser_recall_plot_df_unique
+
+# observed statistic
+obs_diff <- with(df,
+  mean(mean_beta[community_name == "DMN"], na.rm = TRUE) -
+  mean(mean_beta[community_name != "DMN"], na.rm = TRUE)
+)
+
+# permutation test
+n_perm <- 10000
+perm_diffs <- replicate(n_perm, {
+  perm_labels <- sample(df$community_name)
+  mean(df$mean_beta[perm_labels == "DMN"], na.rm = TRUE) -
+    mean(df$mean_beta[perm_labels != "DMN"], na.rm = TRUE)
+})
+
+p_empirical <- mean(perm_diffs >= obs_diff)
+
+obs_diff
+p_empirical
+
+```
+
+```{r}
+
+# Put permutation results into a data frame
+perm_df <- data.frame(perm_diffs = perm_diffs)
+
+p<-ggplot(perm_df, aes(x = perm_diffs)) +
+  geom_histogram(
+    bins = 100,
+    fill = "grey30",
+    color = "grey30"
+  ) +
+  geom_vline(
+    xintercept = obs_diff,
+    color = "red",
+    linewidth = 1.2
+  ) +
+  labs(
+    title = "DMN slopes vs. rest of the brain",
+    x = "Permuted Mean Difference",
+    y = "Frequency"
+  ) +
+  theme_classic(base_size = 18)
+
+
+p <- p +
+  annotate(
+    "text",
+    x = Inf,
+    y = Inf,
+    label = paste0("p = ", signif(p_empirical, 3)),
+    hjust = 1.05,
+    vjust = 1.5,
+    size = 6
+  )
+
+
+
+p <- p +
+  theme(
+    plot.margin = margin(10, 20, 10, 10)
+  )
+
+
+ggsave(
+  filename = "permutation_null_distribution_recall.png",
+  plot = p,
+  width = 6,
+  height = 4,
+  units = "in",
+  dpi = 300
+)
+
+```

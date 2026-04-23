@@ -1,0 +1,128 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# plot model estimates
+
+```{r}
+library(tidyverse)
+library(ggseg)
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(sjPlot)  # For extracting confidence intervals
+library(ggeffects)
+
+```
+
+#encoding
+
+## data to load
+```{r}
+results <- read_csv("viewing_slopes_April2026.csv")
+```
+
+## plot
+```{r}
+roi_list <-c('PMC',
+             'dmPFC',
+             'ATL',
+             'vmPFC',
+             'MTL',
+             'PreC',
+             'vLP',
+             'dLP',
+             'aLP',
+             'SMC')
+
+colors <- c("#63aff9","#ff0000","#ff7700","#f5c042","#2c9741","#8adA99","#003300","#3c1d8a","#a61712","#60ebeb")
+p<-ggplot(results,aes( y = term_beta, x = fct_relevel(file,"vmPFC","PMC","dLP","aLP","dmPFC","ATL","MTL","PreC", "vLP", "SMC"), color = file)) +
+  geom_point(size =5) +
+  geom_errorbar(aes(ymin =term_beta-term_se, ymax = term_beta+term_se), width = 0,linewidth=2) +
+  geom_hline(yintercept = 0, linetype ="dashed", color = "gray40") +
+  theme_minimal() +
+  ylim(-0.003, .014)+
+  scale_color_manual(values =setNames(colors, results$file))+
+  labs(title = "Encoding ISPS",size = 40)+
+  theme(
+    plot.title=element_text(size = 30, hjust =0.5),
+    plot.margin = unit(c(1,.5,.5,.5),"cm"),
+    panel.grid.major.x = element_blank(),
+    #panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.border = element_blank(),
+    axis.title.y = element_text(size = 30),
+    axis.title.x = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 25),
+    axis.text.x = element_text(angle=90,size = 18),
+    legend.position = "none") +
+    ylab("Model Estimate")
+  
+  
+
+ggsave('encodingISPS_topicSim_estimates_v6.png', width = 4.5,height = 6, units = "in", dpi = 300)
+
+```
+
+# recall
+
+## data to load
+```{r}
+results <- read_csv("recall_slopes_April2026.csv")
+```
+
+
+## plot
+```{r}
+roi_list <-c('PMC',
+             'dmPFC',
+             'ATL',
+             'vmPFC',
+             'MTL',
+             'PreC',
+             'vLP',
+             'dLP',
+             'aLP',
+             'SMC')
+
+colors <- c("#63aff9","#ff0000","#ff7700","#f5c042","#2c9741","#8adA99","#003300","#3c1d8a","#a61712","#60ebeb")
+p<-ggplot(results,aes( y = term_beta, x = fct_relevel(file,"vmPFC","PMC","dLP","aLP","dmPFC","ATL","MTL","PreC", "vLP", "SMC"), color = file)) +
+  geom_point(size =5) +
+  geom_errorbar(aes(ymin =term_beta-term_se, ymax = term_beta+term_se), width = 0,linewidth=2) +
+  geom_hline(yintercept = 0, linetype ="dashed", color = "gray40") +
+  theme_minimal() +
+  scale_color_manual(values =setNames(colors, results$file))+
+  labs(title = "Recall ISPS")+
+  ylim(-0.003, .014)+
+  theme(
+    plot.title= element_text(size = 30, hjust = 0.5),
+    plot.margin = unit(c(1,.5,.5,.5),"cm"),
+    panel.grid.major.x = element_blank(),
+    #panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.border = element_blank(),
+    axis.title.y = element_text(size = 30),
+    axis.title.x = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(size = 25),
+    axis.text.x = element_text(angle=90,size = 18),
+    legend.position = "none")+
+    ylab("Model Estimate")
+
+ggsave('recallISPS_topicSim_estimates_v6.png', width = 4.5,height = 6, units = "in", dpi = 300)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
