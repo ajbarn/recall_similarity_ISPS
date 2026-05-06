@@ -26,7 +26,8 @@ library(stringr)
 
 ## data to load
 ```{r}
-results <- read_csv("glasser_plot_viewing_df.csv")
+#glasser_plot_viewing_df_github <- read_csv("glasser_plot_viewing_df.csv")
+load("glasser_plot_viewing_df.RData")
 ```
 
 ## plot
@@ -37,7 +38,7 @@ max_abs <- max(abs(glasser_plot_df$term_tvalue), na.rm = TRUE)
 #max_abs<-3
 bold_palette <- c("cyan", "blue", "black", "red", "yellow")
 
-p<-ggplot(glasser_plot_df) +
+ggplot(glasser_plot_df) +
   geom_brain(
     atlas = glasser,
     aes(fill = term_tvalue ),
@@ -60,7 +61,7 @@ p<-ggplot(glasser_plot_df) +
   #) +
   coord_sf() +
   theme_void()
-ggsave('glasser_viewing_v2.png', plot = p, width = 4, height = 2, dpi = 300)
+#ggsave('glasser_viewing_v2.png', plot = p, width = 4, height = 2, dpi = 300)
 ```
 
 ## permutation tests and plot
